@@ -16,8 +16,24 @@ already familiar with the Huffman encoding problem, on which you will otherwise
 find many resources online (sadly accompanied by the naive unefficient
 implementation from the original paper!).
 
-## Algorithm presentation
+Historically, algorithms for length-limited Huffman encoding existed but with
+much worse complexities, some being iterative in nature. You can find
+some of them as references in [1,2].
 
+Basically, the problem of Huffman encoding with messages of limited-length
+can be reduced to the binary coin collector's problem. The coin collector
+problem was also coined in [2] in order to present the package-merge algorithm.
+
+The package-merge algorithm was then improved in [1] by very clever analysis and
+new ways of looking at the problem.
+
+## Algorithm presentation
+The understanding of the full mathematical proof is not required to understand
+the boundary package-merge algorithm.
+
+The example from [1], with more colors and details, is:
+
+![Boundary package-merge diagram](doc/bnd-pkg-merge.svg)
 
 ## Changes to the algorithm
 The boundary package-merge algorithm, can be improved in minor ways to increase

@@ -9,7 +9,31 @@ package-merge algorithm is _O(n.L)_ time and _O(n)_ space. To the best of my
 knowledge, the boundary package-merge algorithm is still the best algorithm
 for length-limited Huffman encoding if time and space are taken into account.
 
-##  
+## Recommended reading
+The full proof of why the boundary package-merge works can be understood by
+reading just [2] and [1], preferably in this order. This is for readers
+already familiar with the Huffman encoding problem, on which you will otherwise
+find many resources online (sadly accompanied by the naive unefficient
+implementation from the original paper!).
+
+## Algorithm presentation
+
+
+## Changes to the algorithm
+The boundary package-merge algorithm, can be improved in minor ways to increase
+performance. I took the benchmark case of encoding 100k symbols of random
+weights to quantify the improvements (that are most of the time obvious anyway).
+Some of these changes are straightforward, it is possible that they were even
+implied in [1], however they are not explicit in the raw implementation 
+presented in the paper.
+
+* Computation of chain pairs in the sets preceding _j_ only if needed. The
+algorithm in [1] implemented literally involves asking for nodes that will
+possibly never be considered for insertion as packages. The performance impact
+is almost a division by 2 in execution time for our test case. It seems that
+implementing this change necessarily comes at the cost of adding an auxiliary
+array of booleans of length _L - 1_ to keep track of wheter new pairs are
+needed. The cost is negligeable.
 
 
 ## References

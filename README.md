@@ -48,7 +48,7 @@ algorithm in [1] implemented literally involves asking for nodes that will
 possibly never be considered for insertion as packages. The performance impact
 is almost a division by 2 in execution time for our test case. It seems that
 implementing this change necessarily comes at the cost of adding an auxiliary
-array of booleans of length _L - 1_ to keep track of wheter new pairs are
+array of booleans of length _L - 1_ to keep track of whether new pairs are
 needed. The cost is negligeable.
 
 

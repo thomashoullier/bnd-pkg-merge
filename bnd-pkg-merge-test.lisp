@@ -1,6 +1,8 @@
 ;;;; Tests for Boundary package-merge algorithm implementation, the algorithm
 ;;;; for limited-length Huffman encoding.
 
+(in-package :bpm)
+
 ;;; a-to-l
 (defun a-to-l-valid (a l-valid)
   (let ((l (a-to-l a)))
@@ -43,7 +45,7 @@
 		    100000 100000 100000 100000 100000 100000 100000 100000
 		    100000 100000 100000 100000)))
   (loop for i from 0 below (length probs) do
-    (setf (aref probs i) (1+ (random 100 (seed-random-state i)))))
+    (setf (aref probs i) (1+ (random 100 (sb-kernel::seed-random-state i)))))
   (setf probs (sort probs #'<=))
   (time (setf a (encode-limited probs 32)))
   (loop for ai across a

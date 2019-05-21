@@ -5,6 +5,8 @@
 ;;;; With n the number of symbols in the dictionary to encode ; L the maximum
 ;;;; encoded length of the messages.
 
+(in-package :bpm)
+
 (defstruct chain
   ;; The probability weight of the chain
   (weight 0 :type fixnum)

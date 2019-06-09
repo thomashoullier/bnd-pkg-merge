@@ -8,8 +8,6 @@
 (in-package :bpm)
 
 (defstruct chain
-  ;; The probability weight of the chain
-  (weight 0 :type fixnum)
   ;; The number of leaf chains before this chain in the vector it is in.
   ;; Includes the present chain if it is a leaf.
   (count 0 :type fixnum)
@@ -25,7 +23,7 @@
       (when (= j 0)
        ;; End of recursion, append a new chain to the first vector with weight
        ;; taken from 'probs'.
-	(vector-push-extend (make-chain :count (1+ c) :weight p) cur-vec)
+	(vector-push-extend (make-chain :count (1+ c)) cur-vec)
 	(when (aref pair-needed j)
 		(setf (aref pair-needed j) nil)
 		(setf (aref last-pack-weight j) 0))
@@ -51,7 +49,7 @@
 	  ;; Signal a pair to be added next time a sum s is needed.
 	  (setf (aref pair-needed (1- j)) T))
       (vector-push-extend
-       (make-chain :count ncount :weight nweight :tail ntail) cur-vec)
+       (make-chain :count ncount :tail ntail) cur-vec)
       (when (aref pair-needed j)
 	(setf (aref last-pack-weight j) 0)
 	(setf (aref pair-needed j) nil))
@@ -98,8 +96,8 @@ the boundary package-merge algorithm."
 	  (make-array
 	   2 :fill-pointer 2 :element-type 'chain
 	     :initial-contents
-	     (list (make-chain :weight (aref probs-padded 0) :count 1)
-		   (make-chain :weight (aref probs-padded 1) :count 2)))))
+	     (list (make-chain :count 1)
+		   (make-chain :count 2)))))
     ;; Ask for 2n-2-2 nodes in the last list.
     (dotimes (it (- (* 2 n) 4) t)
       (add-chain arr-chains (1- L) probs-padded pair-needed last-pack-weight))

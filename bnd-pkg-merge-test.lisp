@@ -17,7 +17,7 @@
 (a-to-l-valid #(2) #(1 1))
 
 ;;; chain struct
-(let* ((c (make-chain :weight 3 :count 4))
+(let* ((c (make-chain :count 4))
        (c2 (make-chain :tail c)))
   (setf (chain-tail c2) nil))
 

@@ -7,10 +7,6 @@
 
 (in-package :bpm)
 
-(defstruct count-chain
-  (count 0 :type fixnum)
-  (tail nil :type (or null count-chain)))
-
 (defstruct chain
   ;; The probability weight of the chain
   (weight 0 :type fixnum)
@@ -20,55 +16,34 @@
   ;; The chain this chain points to in a preceding list.
   (tail nil :type (or null chain)))
 
-(defun add-chain (arr-chains counts countchains-vec j probs pair-needed)
+(defun add-chain (arr-chains j probs pair-needed)
   "A chain must be added in the vector 'j' of 'arr-chains'. Recursive."
   (let* ((cur-vec (aref arr-chains j))
-	 (countchains (aref countchains-vec j))
 	 (ilast (1- (length cur-vec)))
-	 (c (aref counts j))
+	 (c (chain-count (aref cur-vec ilast)))
 	 (p (aref probs c)))
       (if (= j 0)
        ;; End of recursion, append a new chain to the first vector with weight
        ;; taken from 'probs'.
-	  (progn (vector-push-extend (make-chain :count (1+ c) :weight p)
-				     cur-vec)
-		 (vector-push-extend
-		  (make-count-chain :count (incf (aref counts j)))
-		  countchains))
+	  (vector-push-extend (make-chain :count (1+ c) :weight p) cur-vec)
 	  (progn
 	    ;; If the previous pair was previously used in a package, ask for a
 	    ;; new pair.
 	    (when (aref pair-needed (1- j))
-	      (dotimes (it 2 t)
-		(add-chain arr-chains counts countchains-vec
-			   (1- j) probs pair-needed))
-	      (setf (aref pair-needed (1- j)) nil)
-	      ;; CREATE ONE COUNT-CHAIN IN TWO HERE
-	      )
+	      (dotimes (it 2 t) (add-chain arr-chains (1- j) probs pair-needed))
+	      (setf (aref pair-needed (1- j)) nil))
 	    (let* ((prev-vec (aref arr-chains (1- j)))
-		   (prev-counts (aref countchains-vec (1- j)))
 		   (iplast (1- (length prev-vec)))
 		   (s ( + (chain-weight (aref prev-vec (1- iplast)))
 			  (chain-weight (aref prev-vec iplast)))))
 	      (if (> s p)
 		  ;; Append a leaf chain
-		  (progn (incf (aref counts j))
-			 (vector-push-extend
-			  (make-chain :count (1+ c) :weight p
-				      :tail (chain-tail (aref cur-vec ilast)))
-			  cur-vec)
-			 (vector-push-extend
-			  (make-count-chain
-			   :count (incf (aref counts j))
-			   :tail (count-chain-tail (aref countchains ilast)))
-			  countchains))
+		  (vector-push-extend
+		   (make-chain :count (1+ c) :weight p
+			       :tail (chain-tail (aref cur-vec ilast))) cur-vec)
 		  ;; Append a package and signal for two nodes in vector j - 1
 		  ;; to be added next time a sum s is needed.
 		  (progn (vector-push-extend
-			  (make-count-chain :count (aref counts j)
-					    :tail (aref prev-counts iplast))
-			  countchains)
-		    (vector-push-extend
 			  (make-chain :count c :weight s
 				      :tail (aref prev-vec iplast)) cur-vec)
 			 (setf (aref pair-needed (1- j)) T))))))))
@@ -84,9 +59,6 @@ the boundary package-merge algorithm."
   (let* ((n (length probs))
 	 (arr-chains (make-array L :element-type '(vector chain)
 				   :initial-element #((make-chain))))
-	 (counts (make-array L :element-type 'fixnum :initial-element 2))
-	 (countchains-vec (make-array L :element-type '(vector count-chain)
-				      :initial-element #((make-count-chain))))
 	 (a (make-array 0 :fill-pointer 0 :element-type 'fixnum))
 	 (probs-padded (make-array (+ n 2) :element-type 'fixnum))
 	 (pair-needed (make-array (1- L)
@@ -111,11 +83,10 @@ the boundary package-merge algorithm."
 	   2 :fill-pointer 2 :element-type 'chain
 	     :initial-contents
 	     (list (make-chain :weight (aref probs-padded 0) :count 1)
-		   (make-chain :weight (aref probs-padded 1) :count 2))))
-      (setf (aref countchains-vec )) )
+		   (make-chain :weight (aref probs-padded 1) :count 2)))))
     ;; Ask for 2n-2-2 nodes in the last list.
     (dotimes (it (- (* 2 n) 4) t)
-      (add-chain arr-chains counts (1- L) probs-padded pair-needed))
+      (add-chain arr-chains (1- L) probs-padded pair-needed))
     ;; Go up the last boundary chain and get the 'a' vector of counts.
     (let* ((lastvec (aref arr-chains (1- L)))
 	   (lastchain (aref lastvec (1- (length lastvec)))))

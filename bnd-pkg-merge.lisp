@@ -16,37 +16,46 @@
   ;; The chain this chain points to in a preceding list.
   (tail nil :type (or null chain)))
 
-(defun add-chain (arr-chains j probs pair-needed)
+(defun add-chain (arr-chains j probs pair-needed last-pack-weight)
   "A chain must be added in the vector 'j' of 'arr-chains'. Recursive."
   (let* ((cur-vec (aref arr-chains j))
 	 (ilast (1- (length cur-vec)))
 	 (c (chain-count (aref cur-vec ilast)))
 	 (p (aref probs c)))
-      (if (= j 0)
+      (when (= j 0)
        ;; End of recursion, append a new chain to the first vector with weight
        ;; taken from 'probs'.
-	  (vector-push-extend (make-chain :count (1+ c) :weight p) cur-vec)
-	  (progn
-	    ;; If the previous pair was previously used in a package, ask for a
-	    ;; new pair.
-	    (when (aref pair-needed (1- j))
-	      (dotimes (it 2 t) (add-chain arr-chains (1- j) probs pair-needed))
-	      (setf (aref pair-needed (1- j)) nil))
-	    (let* ((prev-vec (aref arr-chains (1- j)))
-		   (iplast (1- (length prev-vec)))
-		   (s ( + (chain-weight (aref prev-vec (1- iplast)))
-			  (chain-weight (aref prev-vec iplast)))))
-	      (if (> s p)
-		  ;; Append a leaf chain
-		  (vector-push-extend
-		   (make-chain :count (1+ c) :weight p
-			       :tail (chain-tail (aref cur-vec ilast))) cur-vec)
-		  ;; Append a package and signal for two nodes in vector j - 1
-		  ;; to be added next time a sum s is needed.
-		  (progn (vector-push-extend
-			  (make-chain :count c :weight s
-				      :tail (aref prev-vec iplast)) cur-vec)
-			 (setf (aref pair-needed (1- j)) T))))))))
+	(vector-push-extend (make-chain :count (1+ c) :weight p) cur-vec)
+	(return-from add-chain))
+    ;; If the previous pair was previously used in a package, ask for a
+    ;; new pair.
+    (when (aref pair-needed (1- j))
+      (dotimes (it 2 t) (add-chain arr-chains (1- j) probs pair-needed
+				   last-pack-weight))
+      ;; This pair will later be a package, update the last-pack-weight
+      (let* ((prev-vec (aref arr-chains (1- j)))
+	     (iplast (1- (length prev-vec))))
+	(setf (aref last-pack-weight (1- j))
+	      (+ (chain-weight (aref prev-vec (1- iplast)))
+		 (chain-weight (aref prev-vec iplast)))))
+      (setf (aref pair-needed (1- j)) nil))
+    (let* ((prev-vec (aref arr-chains (1- j)))
+	   (iplast (1- (length prev-vec)))
+	   (s (aref last-pack-weight (1- j)))
+	   ;; (s (+ (chain-weight (aref prev-vec (1- iplast)))
+	   ;; 	  (chain-weight (aref prev-vec iplast))))
+	   )
+      (if (> s p)
+	  ;; Append a leaf chain
+	  (progn (vector-push-extend
+		  (make-chain :count (1+ c) :weight p
+			      :tail (chain-tail (aref cur-vec ilast))) cur-vec))
+	  ;; Append a package and signal for two nodes in vector j - 1
+	  ;; to be added next time a sum s is needed.
+	  (progn (vector-push-extend
+		  (make-chain :count c :weight s
+			      :tail (aref prev-vec iplast)) cur-vec)
+		 (setf (aref pair-needed (1- j)) T))))))
 
 (defun encode-limited (probs L)
   "Implementation of the boundary package-merge algorithm for length-limited
@@ -62,7 +71,12 @@ the boundary package-merge algorithm."
 	 (a (make-array 0 :fill-pointer 0 :element-type 'fixnum))
 	 (probs-padded (make-array (+ n 2) :element-type 'fixnum))
 	 (pair-needed (make-array (1- L)
-				  :element-type 'boolean :initial-element nil)))
+				  :element-type 'boolean :initial-element nil))
+	 ;; Array of last package weight in each vector of chains.
+	 (last-pack-weight
+	   (make-array (1- L) :element-type 'fixnum
+			      :initial-element (+ (aref probs 0)
+						  (aref probs 1)))))
     ;; Test whether constructing the length-limited code is even possible.
     ;; A prefix tree of height L contains at most 2^L leaves.
     (when (< (expt 2 L) n) (error "L=~a is too short for ~a symbols." L n))
@@ -86,7 +100,7 @@ the boundary package-merge algorithm."
 		   (make-chain :weight (aref probs-padded 1) :count 2)))))
     ;; Ask for 2n-2-2 nodes in the last list.
     (dotimes (it (- (* 2 n) 4) t)
-      (add-chain arr-chains (1- L) probs-padded pair-needed))
+      (add-chain arr-chains (1- L) probs-padded pair-needed last-pack-weight))
     ;; Go up the last boundary chain and get the 'a' vector of counts.
     (let* ((lastvec (aref arr-chains (1- L)))
 	   (lastchain (aref lastvec (1- (length lastvec)))))

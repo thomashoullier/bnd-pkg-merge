@@ -38,23 +38,24 @@
 				   last-pack-weight)))
     (let* ((prev-vec (aref arr-chains (1- j)))
 	   (iplast (1- (length prev-vec)))
-	   (s (aref last-pack-weight (1- j))))
+	   (s (aref last-pack-weight (1- j)))
+	   (nweight s)
+	   (ntail (aref prev-vec iplast))
+	   (ncount c))
       (if (> s p)
 	  ;; Append a leaf chain
-	  (progn (vector-push-extend
-		  (make-chain :count (1+ c) :weight p
-			      :tail (chain-tail (aref cur-vec ilast))) cur-vec))
+	  (psetf nweight p
+		 ntail (chain-tail (aref cur-vec ilast))
+		 ncount (1+ c))
 	  ;; Append a package and signal for two nodes in vector j - 1
-	  ;; to be added next time a sum s is needed.
-	  (progn (vector-push-extend
-		  (make-chain :count c :weight s
-			      :tail (aref prev-vec iplast)) cur-vec)
-		 (setf (aref pair-needed (1- j)) T)))
+	  ;; Signal a pair to be added next time a sum s is needed.
+	  (setf (aref pair-needed (1- j)) T))
+      (vector-push-extend
+       (make-chain :count ncount :weight nweight :tail ntail) cur-vec)
       (when (aref pair-needed j)
 	(setf (aref last-pack-weight j) 0)
 	(setf (aref pair-needed j) nil))
-      (incf (aref last-pack-weight j)
-	    (chain-weight (aref cur-vec (1- (length cur-vec))))))))
+      (incf (aref last-pack-weight j) nweight))))
 
 (defun encode-limited (probs L)
   "Implementation of the boundary package-merge algorithm for length-limited
@@ -69,9 +70,11 @@ the boundary package-merge algorithm."
 				   :initial-element #((make-chain))))
 	 (a (make-array 0 :fill-pointer 0 :element-type 'fixnum))
 	 (probs-padded (make-array (+ n 2) :element-type 'fixnum))
+	 ;; TODO: pair-needed can actually be of length L-1
 	 (pair-needed (make-array L
 				  :element-type 'boolean :initial-element nil))
 	 ;; Array of last package weight in each vector of chains.
+	 ;; TODO: idem L-1
 	 (last-pack-weight
 	   (make-array L :element-type 'fixnum
 			      :initial-element (+ (aref probs 0)

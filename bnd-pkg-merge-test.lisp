@@ -28,15 +28,16 @@
     (loop for ai across a
 	  for aival across a-valid do
 	    (assert (= ai aival)))))
-;; Katajainen1996 examples
+(format t "auxiliary functions: PASS~%")
+
+;;; Katajainen1996 examples
 (encode-limited-valid #(1 1 5 7 10 14) 4 #(2 3 6 6))
 (encode-limited-valid #(1 1 5 7 10 14) 3 #(4 6 6))
-;;(encode-limited-valid #(1 1) 1 #(2))
+(encode-limited-valid #(1 1) 1 #(2))
 (encode-limited-valid #(1 1 3 3) 4 #(2 3 4))
+(format t "limited-test manual: PASS~%")
 
-(format t "limited-test: PASS~%")
-
-;;; Performance benchmark
+;;; Example of large set
 ;; Note that the random sequence of weights is deterministic for the sake of
 ;; repeatability and testing the output.
 (let ((probs (make-array 100000 :element-type 'fixnum))
@@ -47,7 +48,9 @@
   (loop for i from 0 below (length probs) do
     (setf (aref probs i) (1+ (random 100 (sb-kernel::seed-random-state i)))))
   (setf probs (sort probs #'<=))
-  (time (setf a (encode-limited probs 32)))
+  (setf a (encode-limited probs 32))
   (loop for ai across a
 	for aval across expected-a do
 	  (assert (= ai aval))))
+
+(format t "limited-test 100k: PASS~%")

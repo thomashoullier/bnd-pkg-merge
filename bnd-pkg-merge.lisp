@@ -75,8 +75,8 @@ the boundary package-merge algorithm."
 	 ;; TODO: idem L-1
 	 (last-pack-weight
 	   (make-array L :element-type 'fixnum
-			      :initial-element (+ (aref probs 0)
-						  (aref probs 1)))))
+			 :initial-element (+ (aref probs 0)
+					     (aref probs 1)))))
     ;; Test whether constructing the length-limited code is even possible.
     ;; A prefix tree of height L contains at most 2^L leaves.
     (when (< (expt 2 L) n) (error "L=~a is too short for ~a symbols." L n))

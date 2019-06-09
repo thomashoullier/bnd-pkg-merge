@@ -26,25 +26,19 @@
        ;; End of recursion, append a new chain to the first vector with weight
        ;; taken from 'probs'.
 	(vector-push-extend (make-chain :count (1+ c) :weight p) cur-vec)
+	(when (aref pair-needed j)
+		(setf (aref pair-needed j) nil)
+		(setf (aref last-pack-weight j) 0))
+	(incf (aref last-pack-weight j) p)
 	(return-from add-chain))
     ;; If the previous pair was previously used in a package, ask for a
     ;; new pair.
     (when (aref pair-needed (1- j))
       (dotimes (it 2 t) (add-chain arr-chains (1- j) probs pair-needed
-				   last-pack-weight))
-      ;; This pair will later be a package, update the last-pack-weight
-      (let* ((prev-vec (aref arr-chains (1- j)))
-	     (iplast (1- (length prev-vec))))
-	(setf (aref last-pack-weight (1- j))
-	      (+ (chain-weight (aref prev-vec (1- iplast)))
-		 (chain-weight (aref prev-vec iplast)))))
-      (setf (aref pair-needed (1- j)) nil))
+				   last-pack-weight)))
     (let* ((prev-vec (aref arr-chains (1- j)))
 	   (iplast (1- (length prev-vec)))
-	   (s (aref last-pack-weight (1- j)))
-	   ;; (s (+ (chain-weight (aref prev-vec (1- iplast)))
-	   ;; 	  (chain-weight (aref prev-vec iplast))))
-	   )
+	   (s (aref last-pack-weight (1- j))))
       (if (> s p)
 	  ;; Append a leaf chain
 	  (progn (vector-push-extend
@@ -55,7 +49,12 @@
 	  (progn (vector-push-extend
 		  (make-chain :count c :weight s
 			      :tail (aref prev-vec iplast)) cur-vec)
-		 (setf (aref pair-needed (1- j)) T))))))
+		 (setf (aref pair-needed (1- j)) T)))
+      (when (aref pair-needed j)
+	(setf (aref last-pack-weight j) 0)
+	(setf (aref pair-needed j) nil))
+      (incf (aref last-pack-weight j)
+	    (chain-weight (aref cur-vec (1- (length cur-vec))))))))
 
 (defun encode-limited (probs L)
   "Implementation of the boundary package-merge algorithm for length-limited
@@ -70,11 +69,11 @@ the boundary package-merge algorithm."
 				   :initial-element #((make-chain))))
 	 (a (make-array 0 :fill-pointer 0 :element-type 'fixnum))
 	 (probs-padded (make-array (+ n 2) :element-type 'fixnum))
-	 (pair-needed (make-array (1- L)
+	 (pair-needed (make-array L
 				  :element-type 'boolean :initial-element nil))
 	 ;; Array of last package weight in each vector of chains.
 	 (last-pack-weight
-	   (make-array (1- L) :element-type 'fixnum
+	   (make-array L :element-type 'fixnum
 			      :initial-element (+ (aref probs 0)
 						  (aref probs 1)))))
     ;; Test whether constructing the length-limited code is even possible.

@@ -13,7 +13,7 @@ for length-limited Huffman encoding if time and space are taken into account.
 The full proof of why the boundary package-merge works can be understood by
 reading just [2] and [1], preferably in this order. This is for readers
 already familiar with the Huffman encoding problem, on which you will otherwise
-find many resources online (sadly accompanied by the naive unefficient
+find many resources online (sadly accompanied by the naive inefficient
 implementation from the original paper!).
 
 Historically, algorithms for length-limited Huffman encoding existed but with
@@ -38,7 +38,7 @@ The example from [1], with more colors and details, is:
 ## Changes to the algorithm
 The boundary package-merge algorithm, can be improved in minor ways to increase
 performance. I took the benchmark case of encoding 100k symbols of random
-weights to quantify the improvements (that are most of the time obvious anyway).
+weights to quantify the improvements.
 Some of these changes are straightforward, it is possible that they were even
 implied in [1], however they are not explicit in the raw implementation 
 presented in the paper.
@@ -49,8 +49,7 @@ possibly never be considered for insertion as packages. The performance impact
 is almost a division by 2 in execution time for our test case. It seems that
 implementing this change necessarily comes at the cost of adding an auxiliary
 array of booleans of length _L - 1_ to keep track of whether new pairs are
-needed. The cost is negligeable.
-
+needed. This cost is negligeable.
 
 ## References
 1. Katajainen J., Moffat A., Turpin A. (1995) A fast and space-economical algorithm for length-limited coding. In: Staples J., Eades P., Katoh N., Moffat A. (eds) Algorithms and Computations. ISAAC 1995. Lecture Notes in Computer Science, vol 1004. Springer, Berlin, Heidelberg. https://doi.org/10.1007/BFb0015404

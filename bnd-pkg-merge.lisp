@@ -15,28 +15,28 @@
   (tail nil :type (or null chain)))
 
 (defun add-chain (arr-chains j probs pair-needed last-pack-weight
-		  last-count)
+		  last-count last-tail)
   "A chain must be added in the vector 'j' of 'arr-chains'. Recursive."
   (let* ((cur-vec (aref arr-chains j))
 	 (ilast (1- (length cur-vec)))
-	 ;; (c (chain-count (aref cur-vec ilast)))
 	 (c (aref last-count j))
 	 (p (aref probs c)))
       (when (= j 0)
 	;; End of recursion, append a new chain to the first vector with weight
 	;; taken from 'probs'.
-	(vector-push-extend (make-chain :count (incf (aref last-count j)))
-			    cur-vec)
-	(when (aref pair-needed j)
-	  (setf (aref pair-needed j) nil)
-	  (setf (aref last-pack-weight j) 0))
+	(incf (aref last-count j))
+	(if (aref pair-needed j)
+	    (progn (setf (aref pair-needed j) nil)
+		   (setf (aref last-pack-weight j) 0))
+	    (vector-push-extend (make-chain :count (aref last-count j))
+				cur-vec))
 	(incf (aref last-pack-weight j) p)
 	(return-from add-chain))
     ;; If the previous pair was previously used in a package, ask for a
     ;; new pair.
     (when (aref pair-needed (1- j))
       (dotimes (it 2 t) (add-chain arr-chains (1- j) probs pair-needed
-				   last-pack-weight last-count)))
+				   last-pack-weight last-count last-tail)))
     (let* ((prev-vec (aref arr-chains (1- j)))
 	   (iplast (1- (length prev-vec)))
 	   (s (aref last-pack-weight (1- j)))
@@ -50,12 +50,13 @@
 		 ncount (incf (aref last-count j)))
 	  ;; Append a package and signal for two nodes in vector j - 1
 	  ;; Signal a pair to be added next time a sum s is needed.
-	  (setf (aref pair-needed (1- j)) T))
-      (vector-push-extend
-       (make-chain :count ncount :tail ntail) cur-vec)
-      (when (aref pair-needed j)
-	(setf (aref last-pack-weight j) 0)
-	(setf (aref pair-needed j) nil))
+	  (progn (setf (aref last-tail j) ntail)
+		 (setf (aref pair-needed (1- j)) T)))
+      (if (aref pair-needed j)
+	(progn (setf (aref last-pack-weight j) 0)
+	       (setf (aref pair-needed j) nil))
+	(vector-push-extend (make-chain :count ncount :tail (aref last-tail j))
+			    cur-vec))
       (incf (aref last-pack-weight j) nweight))))
 
 (defun encode-limited (probs L)
@@ -82,7 +83,11 @@ the boundary package-merge algorithm."
 					     (aref probs 1))))
 	 ;; Array storing the last count for each row j.
 	 (last-count (make-array L :element-type 'fixnum
-				   :initial-element 2)))
+				   :initial-element 2))
+	 ;; Array of last tail element for each line. Only for building,
+	 ;; cannot be traversed.
+	 (last-tail (make-array L :element-type '(or null chain)
+				  :initial-element nil)))
     ;; Test whether constructing the length-limited code is even possible.
     ;; A prefix tree of height L contains at most 2^L leaves.
     (when (< (expt 2 L) n) (error "L=~a is too short for ~a symbols." L n))
@@ -106,8 +111,9 @@ the boundary package-merge algorithm."
 		   (make-chain :count 2)))))
     ;; Ask for 2n-2-2 nodes in the last list.
     (dotimes (it (- (* 2 n) 4) t)
+      (when (= 0 (mod it 2)) (setf (aref pair-needed (1- L)) T))
       (add-chain arr-chains (1- L) probs-padded pair-needed last-pack-weight
-		 last-count))
+		 last-count last-tail))
     ;; Go up the last boundary chain and get the 'a' vector of counts.
     (let* ((lastvec (aref arr-chains (1- L)))
 	   (lastchain (aref lastvec (1- (length lastvec)))))

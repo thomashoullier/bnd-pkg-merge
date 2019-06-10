@@ -14,26 +14,29 @@
   ;; The chain this chain points to in a preceding list.
   (tail nil :type (or null chain)))
 
-(defun add-chain (arr-chains j probs pair-needed last-pack-weight)
+(defun add-chain (arr-chains j probs pair-needed last-pack-weight
+		  last-count)
   "A chain must be added in the vector 'j' of 'arr-chains'. Recursive."
   (let* ((cur-vec (aref arr-chains j))
 	 (ilast (1- (length cur-vec)))
-	 (c (chain-count (aref cur-vec ilast)))
+	 ;; (c (chain-count (aref cur-vec ilast)))
+	 (c (aref last-count j))
 	 (p (aref probs c)))
       (when (= j 0)
-       ;; End of recursion, append a new chain to the first vector with weight
-       ;; taken from 'probs'.
-	(vector-push-extend (make-chain :count (1+ c)) cur-vec)
+	;; End of recursion, append a new chain to the first vector with weight
+	;; taken from 'probs'.
+	(vector-push-extend (make-chain :count (incf (aref last-count j)))
+			    cur-vec)
 	(when (aref pair-needed j)
-		(setf (aref pair-needed j) nil)
-		(setf (aref last-pack-weight j) 0))
+	  (setf (aref pair-needed j) nil)
+	  (setf (aref last-pack-weight j) 0))
 	(incf (aref last-pack-weight j) p)
 	(return-from add-chain))
     ;; If the previous pair was previously used in a package, ask for a
     ;; new pair.
     (when (aref pair-needed (1- j))
       (dotimes (it 2 t) (add-chain arr-chains (1- j) probs pair-needed
-				   last-pack-weight)))
+				   last-pack-weight last-count)))
     (let* ((prev-vec (aref arr-chains (1- j)))
 	   (iplast (1- (length prev-vec)))
 	   (s (aref last-pack-weight (1- j)))
@@ -44,7 +47,7 @@
 	  ;; Append a leaf chain
 	  (psetf nweight p
 		 ntail (chain-tail (aref cur-vec ilast))
-		 ncount (1+ c))
+		 ncount (incf (aref last-count j)))
 	  ;; Append a package and signal for two nodes in vector j - 1
 	  ;; Signal a pair to be added next time a sum s is needed.
 	  (setf (aref pair-needed (1- j)) T))
@@ -76,7 +79,10 @@ the boundary package-merge algorithm."
 	 (last-pack-weight
 	   (make-array L :element-type 'fixnum
 			 :initial-element (+ (aref probs 0)
-					     (aref probs 1)))))
+					     (aref probs 1))))
+	 ;; Array storing the last count for each row j.
+	 (last-count (make-array L :element-type 'fixnum
+				   :initial-element 2)))
     ;; Test whether constructing the length-limited code is even possible.
     ;; A prefix tree of height L contains at most 2^L leaves.
     (when (< (expt 2 L) n) (error "L=~a is too short for ~a symbols." L n))
@@ -100,7 +106,8 @@ the boundary package-merge algorithm."
 		   (make-chain :count 2)))))
     ;; Ask for 2n-2-2 nodes in the last list.
     (dotimes (it (- (* 2 n) 4) t)
-      (add-chain arr-chains (1- L) probs-padded pair-needed last-pack-weight))
+      (add-chain arr-chains (1- L) probs-padded pair-needed last-pack-weight
+		 last-count))
     ;; Go up the last boundary chain and get the 'a' vector of counts.
     (let* ((lastvec (aref arr-chains (1- L)))
 	   (lastchain (aref lastvec (1- (length lastvec)))))

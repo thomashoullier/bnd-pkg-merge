@@ -54,6 +54,8 @@ needed. This cost is negligeable.
 * Keeping *weights* around is actually unnecessary. We only need one number per
 set _j_. We need only the last weight of each set, replaced by the sum *s* of
 the weights of the two last elements that are about to become a package.
+* Only one in two chains is needed actually: the second of each package. This
+requires tracking the last count and last tail of each set *j*.
 
 ## References
 1. Katajainen J., Moffat A., Turpin A. (1995) A fast and space-economical algorithm for length-limited coding. In: Staples J., Eades P., Katoh N., Moffat A. (eds) Algorithms and Computations. ISAAC 1995. Lecture Notes in Computer Science, vol 1004. Springer, Berlin, Heidelberg. https://doi.org/10.1007/BFb0015404

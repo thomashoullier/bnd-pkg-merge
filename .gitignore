@@ -1,4 +1,3 @@
 *.fasl
 *.lisp~
-*.txt
-
+test.txt

@@ -5,10 +5,11 @@ maximum length _L_ for the encoded messages, this algorithm has _O(n.L)_ time
 complexity and _O(L^2)_ space complexity.
 
 This is better than the package-merge algorithm on which it is based [2]. The
-package-merge algorithm is _O(n.L)_ time and _O(n)_ space. To the best of my
-knowledge, the boundary package-merge algorithm is still the best algorithm
-for length-limited Huffman encoding if time and space are taken into account.
+package-merge algorithm is _O(n.L)_ time and _O(n)_ space.
 
+Note that this algorithm has since been surpassed by others. Please only treat
+this implementation as an alternative means to test your own implementations of
+actually up to date algorithms.
 ## Recommended reading
 The full proof of why the boundary package-merge works can be understood by
 reading just [2] and [1], preferably in this order. This is for readers
@@ -50,6 +51,9 @@ is almost a division by 2 in execution time for our test case. It seems that
 implementing this change necessarily comes at the cost of adding an auxiliary
 array of booleans of length _L - 1_ to keep track of whether new pairs are
 needed. This cost is negligeable.
+* Keeping *weights* around is actually unnecessary. We only need one number per
+set _j_. We need only the last weight of each set, replaced by the sum *s* of
+the weights of the two last elements that are about to become a package.
 
 ## References
 1. Katajainen J., Moffat A., Turpin A. (1995) A fast and space-economical algorithm for length-limited coding. In: Staples J., Eades P., Katoh N., Moffat A. (eds) Algorithms and Computations. ISAAC 1995. Lecture Notes in Computer Science, vol 1004. Springer, Berlin, Heidelberg. https://doi.org/10.1007/BFb0015404

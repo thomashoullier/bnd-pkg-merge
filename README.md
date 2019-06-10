@@ -1,6 +1,6 @@
 # Boundary package-merge algorithm Common Lisp implementation
 The boundary package-merge algorithm is an algorithm for building length-limited
-Huffman codesi [1]. For an alphabet of _n_ symbols and with a constraint of
+Huffman codes [1]. For an alphabet of _n_ symbols and with a constraint of
 maximum length _L_ for the encoded messages, this algorithm has _O(n.L)_ time
 complexity and _O(L^2)_ space complexity.
 

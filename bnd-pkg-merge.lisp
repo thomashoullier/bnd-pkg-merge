@@ -59,6 +59,29 @@
 			    cur-vec))
       (incf (aref last-pack-weight j) nweight))))
 
+(defun chains-gc (arr-chains)
+  "Manual garbage collection mecanism for the chains in arr-chains.
+Goes up the list of chains vectors while keeping track of the boundary.
+Throws out the chains to the left of the boundary."
+  (let* ((len-arr-chains (1- (length arr-chains)))
+	 (last-vec (aref arr-chains len-arr-chains))
+	 (bound-chain (aref last-vec (1- (length last-vec))))
+	 (curvec nil)
+	 (curchain nil)
+	 (inewchain 0))
+    (loop for ivec from (1- (length arr-chains)) downto 0 do
+      (when (not bound-chain) (return-from chains-gc))
+      (setf curvec (aref arr-chains ivec))
+      (setf inewchain 0)
+      (loop for ichain from (1- (length curvec)) downto 0
+	    until (eq curchain bound-chain) do
+	(setf curchain (aref curvec ichain))
+	(setf (aref curvec inewchain) curchain)
+	(incf inewchain))
+      (setf (fill-pointer curvec) inewchain)
+      (setf bound-chain (chain-tail bound-chain))
+      (setf curvec (nreverse curvec)))))
+
 (defun encode-limited (probs L)
   "Implementation of the boundary package-merge algorithm for length-limited
 huffman codes.
@@ -87,7 +110,10 @@ the boundary package-merge algorithm."
 	 ;; Array of last tail element for each line. Only for building,
 	 ;; cannot be traversed.
 	 (last-tail (make-array L :element-type '(or null chain)
-				  :initial-element nil)))
+				  :initial-element nil))
+	 ;; Current last tail of last vector. Triggers garbage collection if
+	 ;; changed.
+	 (cur-last-tail nil))
     ;; Test whether constructing the length-limited code is even possible.
     ;; A prefix tree of height L contains at most 2^L leaves.
     (when (< (expt 2 L) n) (error "L=~a is too short for ~a symbols." L n))
@@ -113,7 +139,17 @@ the boundary package-merge algorithm."
     (dotimes (it (- (* 2 n) 4) t)
       (when (= 0 (mod it 2)) (setf (aref pair-needed (1- L)) T))
       (add-chain arr-chains (1- L) probs-padded pair-needed last-pack-weight
-		 last-count last-tail))
+		 last-count last-tail)
+      ;; Call manual garbage collection every time the tail of the last vector
+      ;; changes (a package was created).
+      (when
+	  (not
+	   (eq cur-last-tail
+	       (setf cur-last-tail
+		     (chain-tail
+		      (aref (aref arr-chains (1- L))
+			    (1- (length (aref arr-chains (1- L)))))))))
+	(chains-gc arr-chains)))
     ;; Go up the last boundary chain and get the 'a' vector of counts.
     (let* ((lastvec (aref arr-chains (1- L)))
 	   (lastchain (aref lastvec (1- (length lastvec)))))

@@ -6,4 +6,5 @@ set xlabel "Time (ms)"
 set ylabel "Memory (KB)"
 
 plot '104777e56f.txt' w linespoints title "104777e56f",\
-     '12999876e1-halved-chains.txt' w linespoints title "half chains"
+     '12999876e1-halved-chains.txt' w linespoints title "half chains",\
+     '../test.txt' w linespoints title "current"

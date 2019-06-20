@@ -14,155 +14,146 @@
   ;; The chain this chain points to in a preceding list.
   (tail nil :type (or null chain)))
 
-(let ((arr-chains nil)
-      (probs nil)
-      (pair-needed nil)
-      (last-pack-weight nil)
-      (last-count nil)
-      (last-tail nil))
-
-(defun add-chain (j)
-  "A chain must be added in the vector 'j' of 'arr-chains'. Recursive."
-;; If the previous pair was previously used in a package, ask for a
-;; new pair.
-  (when (and (> j 0) (aref pair-needed (1- j)))
-    (dotimes (it 2 t) (add-chain (1- j))))
-  (let* ((cur-vec (aref arr-chains j))
-	 (ilast (1- (length cur-vec)))
-	 (c (aref last-count j))
-	 (p (aref probs c)))
-      (when (= j 0)
-	;; End of recursion, append a new chain to the first vector with weight
-	;; taken from 'probs'.
-	(incf (aref last-count j))
-	(if (aref pair-needed j)
-	    (progn (setf (aref pair-needed j) nil)
-		   (setf (aref last-pack-weight j) 0))
-	    (vector-push-extend (make-chain :count (aref last-count j))
-				cur-vec))
-	(incf (aref last-pack-weight j) p)
-	(return-from add-chain))
-    (let* ((prev-vec (aref arr-chains (1- j)))
-	   (iplast (1- (length prev-vec)))
-	   (s (aref last-pack-weight (1- j)))
-	   (nweight s)
-	   (ntail (aref prev-vec iplast))
-	   (ncount c))
-      (if (> s p)
-	  ;; Append a leaf chain
-	  (psetf nweight p
-		 ntail (chain-tail (aref cur-vec ilast))
-		 ncount (incf (aref last-count j)))
-	  ;; Append a package and signal for two nodes in vector j - 1
-	  ;; Signal a pair to be added next time a sum s is needed.
-	  (progn (setf (aref last-tail j) ntail)
-		 (setf (aref pair-needed (1- j)) T)))
-      (if (aref pair-needed j)
-	(progn (setf (aref last-pack-weight j) 0)
-	       (setf (aref pair-needed j) nil))
-	(vector-push-extend (make-chain :count ncount :tail (aref last-tail j))
-			    cur-vec))
-      (incf (aref last-pack-weight j) nweight))))
-
-(defun chains-gc ()
-  "Manual garbage collection mecanism for the chains in arr-chains.
-Goes up the list of chains vectors while keeping track of the boundary.
-Throws out the chains to the left of the boundary."
-  (let* ((len-arr-chains (1- (length arr-chains)))
-	 (last-vec (aref arr-chains len-arr-chains))
-	 (bound-chain (aref last-vec (1- (length last-vec))))
-	 (curvec nil)
-	 (curchain nil)
-	 (inewchain 0))
-    (loop for ivec from (1- (length arr-chains)) downto 0 do
-      (when (not bound-chain) (return-from chains-gc))
-      (setf curvec (aref arr-chains ivec))
-      (setf inewchain 0)
-      (loop for ichain from (1- (length curvec)) downto 0
-	    until (eq curchain bound-chain) do
-	(setf curchain (aref curvec ichain))
-	(setf (aref curvec inewchain) curchain)
-	(incf inewchain))
-      (setf (fill-pointer curvec) inewchain)
-      (setf bound-chain (chain-tail bound-chain))
-      (setf curvec (nreverse curvec)))))
+(defun mkclosures (probs-i L)
+  "Returns two closures:
+  * add-chain
+  * chains-gc
+TODO:
+We have insufficient speed.
+Try to include encode-limited as a label here.
+Return only this to a top level function.
+Put a let with the arrays around the labels [same syntax as let over defun]."
+  (let ((n (length probs-i))
+	(probs (make-array (+ (length probs-i) 2) :element-type 'fixnum))
+	(arr-chains (make-array L :element-type '(vector chain)
+				  :initial-element #((make-chain))))
+	(pair-needed (make-array
+		      L :element-type 'boolean :initial-element nil))
+	(last-pack-weight 
+	  (make-array L :element-type 'fixnum
+			:initial-element (+ (aref probs-i 0)
+					    (aref probs-i 1))))
+	;; Array storing the last count for each row j. 
+	(last-count (make-array L :element-type 'fixnum
+				  :initial-element 2))
+	;; Array of last tail element for each line. Only for building,
+	;; cannot be traversed.
+	(last-tail (make-array L :element-type '(or null chain)
+				 :initial-element nil)))
+    (labels
+	((add-chain (j)
+	   ;; If the previous pair was previously used in a package, ask for a
+	   ;; new pair.
+	   (when (and (> j 0) (aref pair-needed (1- j)))
+	     (dotimes (it 2 t) (add-chain (1- j))))
+	   (let* ((cur-vec (aref arr-chains j))
+		  (ilast (1- (length cur-vec)))
+		  (c (aref last-count j))
+		  (p (aref probs c)))
+	     (when (= j 0)
+	       ;; End of recursion, append a new chain to the first vector with weight
+	       ;; taken from 'probs'.
+	       (incf (aref last-count j))
+	       (if (aref pair-needed j)
+		   (progn (setf (aref pair-needed j) nil)
+			  (setf (aref last-pack-weight j) 0))
+		   (vector-push-extend (make-chain :count (aref last-count j))
+				       cur-vec))
+	       (incf (aref last-pack-weight j) p)
+	       (return-from add-chain))
+	     (let* ((prev-vec (aref arr-chains (1- j)))
+		    (iplast (1- (length prev-vec)))
+		    (s (aref last-pack-weight (1- j)))
+		    (nweight s)
+		    (ntail (aref prev-vec iplast))
+		    (ncount c))
+	       (if (> s p)
+		   ;; Append a leaf chain
+		   (psetf nweight p
+			  ntail (chain-tail (aref cur-vec ilast))
+			  ncount (incf (aref last-count j)))
+		   ;; Append a package and signal for two nodes in vector j - 1
+		   ;; Signal a pair to be added next time a sum s is needed.
+		   (progn (setf (aref last-tail j) ntail)
+			  (setf (aref pair-needed (1- j)) T)))
+	       (if (aref pair-needed j)
+		   (progn (setf (aref last-pack-weight j) 0)
+			  (setf (aref pair-needed j) nil))
+		   (vector-push-extend (make-chain :count ncount :tail (aref last-tail j))
+				       cur-vec))
+	       (incf (aref last-pack-weight j) nweight))))
+	 (chains-gc ()
+	   (let* ((len-arr-chains (1- (length arr-chains)))
+		  (last-vec (aref arr-chains len-arr-chains))
+		  (bound-chain (aref last-vec (1- (length last-vec))))
+		  (curvec nil)
+		  (curchain nil)
+		  (inewchain 0))
+	     (loop for ivec from (1- (length arr-chains)) downto 0 do
+	       (when (not bound-chain) (return-from chains-gc))
+	       (setf curvec (aref arr-chains ivec))
+	       (setf inewchain 0)
+	       (loop for ichain from (1- (length curvec)) downto 0
+		     until (eq curchain bound-chain) do
+		       (setf curchain (aref curvec ichain))
+		       (setf (aref curvec inewchain) curchain)
+		       (incf inewchain))
+	       (setf (fill-pointer curvec) inewchain)
+	       (setf bound-chain (chain-tail bound-chain))
+	       (setf curvec (nreverse curvec)))))
+	 (encode-limited ()
+	   (let ((a (make-array 0 :fill-pointer 0 :element-type 'fixnum))
+		 ;; Current last tail of last vector. Triggers garbage collection if
+		 ;; changed.
+		 (cur-last-tail nil)
+		 (lastvec nil)
+		 (lastchain nil))
+;; Test whether constructing the length-limited code is even possible.
+		  ;; A prefix tree of height L contains at most 2^L leaves.
+		  (when (< (expt 2 L) n) (error "L=~a is too short for ~a symbols." L n))
+		  ;; Test whether the first, smallest weight is zero. The boundary package-
+		  ;; merge does not work with zero-weights.
+		  (when (>= 0 (aref probs-i 0))
+		    (error "Frequencies of 0 or below in 'probs' are not allowed!"))
+		  ;; Fill the probs-padded vector.
+		  (loop for p across probs-i
+			for i from 0 do
+			  (setf (aref probs i) p))
+		  (setf (aref probs n) most-positive-fixnum)
+		  (setf (aref probs (1+ n)) most-positive-fixnum)
+		  ;; Fill the initial vectors of chains with two initial chains.
+		  (loop for i from 0 below L do
+		    (setf (aref arr-chains i)
+			  (make-array
+			   2 :fill-pointer 2 :element-type 'chain
+			   :initial-contents
+			   (list (make-chain :count 1)
+				 (make-chain :count 2)))))
+		  ;; Ask for 2n-2-2 nodes in the last list.
+		  (dotimes (it (- (* 2 n) 4) t)
+		    (when (= 0 (mod it 2)) (setf (aref pair-needed (1- L)) T))
+		    (add-chain (1- L))
+		    ;; Call manual garbage collection every time the tail of the last vector
+		    ;; changes (a package was created).
+		    (when
+			(not
+			 (eq cur-last-tail
+			     (setf cur-last-tail
+				   (chain-tail
+				    (aref (aref arr-chains (1- L))
+					  (1- (length (aref arr-chains (1- L)))))))))
+		      (chains-gc)))
+	     ;; Go up the last boundary chain and get the 'a' vector of counts.
+	     (setf lastvec (aref arr-chains (1- L)))
+	     (setf lastchain (aref lastvec (1- (length lastvec))))
+	     (loop while lastchain do
+	       (vector-push-extend (chain-count lastchain) a)
+	       (setf lastchain (chain-tail lastchain)))
+	     (nreverse a))))
+      (values #'encode-limited))))
 
 (defun encode-limited (probs-i L)
-  "Implementation of the boundary package-merge algorithm for length-limited
-huffman codes.
-I: probs: array of fixnum probabilities representing the frequencies of the
-          symbols to encode. Must be sorted in order of increasing values.
-   L: Maximum length of an encoded character.
-O: a: array counting the number of active leaf nodes in each row of the lists in
-the boundary package-merge algorithm."
-  (let* ((n (length probs-i))
-	 (a (make-array 0 :fill-pointer 0 :element-type 'fixnum))
-	 (probs-padded (make-array (+ n 2) :element-type 'fixnum))
-	 ;; Current last tail of last vector. Triggers garbage collection if
-	 ;; changed.
-	 (cur-last-tail nil))
-    (psetf probs probs-padded
-	   arr-chains (make-array L :element-type '(vector chain)
-				    :initial-element #((make-chain)))
-	   ;; TODO: pair-needed can actually be of length L-1
-	   pair-needed
-	   (make-array
-	    L :element-type 'boolean :initial-element nil)
-	   ;; Array of last package weight in each vector of chains.
-	   ;; TODO: idem L-1
-	   last-pack-weight 
-	   (make-array L :element-type 'fixnum
-			 :initial-element (+ (aref probs-i 0)
-					     (aref probs-i 1)))
-	   ;; Array storing the last count for each row j. 
-	   last-count (make-array L :element-type 'fixnum
-				    :initial-element 2)
-	   ;; Array of last tail element for each line. Only for building,
-	   ;; cannot be traversed.
-	   last-tail (make-array L :element-type '(or null chain)
-				  :initial-element nil))
-    ;; Test whether constructing the length-limited code is even possible.
-    ;; A prefix tree of height L contains at most 2^L leaves.
-    (when (< (expt 2 L) n) (error "L=~a is too short for ~a symbols." L n))
-    ;; Test whether the first, smallest weight is zero. The boundary package-
-    ;; merge does not work with zero-weights.
-    (when (>= 0 (aref probs-i 0))
-      (error "Frequencies of 0 or below in 'probs' are not allowed!"))
-    ;; Fill the probs-padded vector.
-    (loop for p across probs-i
-	  for i from 0 do
-	    (setf (aref probs-padded i) p))
-    (setf (aref probs-padded n) most-positive-fixnum)
-    (setf (aref probs-padded (1+ n)) most-positive-fixnum)
-    ;; Fill the initial vectors of chains with two initial chains.
-    (loop for i from 0 below L do
-      (setf (aref arr-chains i)
-	  (make-array
-	   2 :fill-pointer 2 :element-type 'chain
-	     :initial-contents
-	     (list (make-chain :count 1)
-		   (make-chain :count 2)))))
-    ;; Ask for 2n-2-2 nodes in the last list.
-    (dotimes (it (- (* 2 n) 4) t)
-      (when (= 0 (mod it 2)) (setf (aref pair-needed (1- L)) T))
-      (add-chain (1- L))
-      ;; Call manual garbage collection every time the tail of the last vector
-      ;; changes (a package was created).
-      (when
-	  (not
-	   (eq cur-last-tail
-	       (setf cur-last-tail
-		     (chain-tail
-		      (aref (aref arr-chains (1- L))
-			    (1- (length (aref arr-chains (1- L)))))))))
-	(chains-gc)))
-    ;; Go up the last boundary chain and get the 'a' vector of counts.
-    (let* ((lastvec (aref arr-chains (1- L)))
-	   (lastchain (aref lastvec (1- (length lastvec)))))
-      (loop while lastchain do
-	(vector-push-extend (chain-count lastchain) a)
-	(setf lastchain (chain-tail lastchain))))
-    (nreverse a))))
+  (funcall (mkclosures probs-i L)))
 
 (defun a-to-l (a)
   "Transform the 'a' vector counting the number of active leaf nodes in each row

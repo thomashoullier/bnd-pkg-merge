@@ -16,27 +16,29 @@
 
 (defun mkclosures (probs-i L)
   "Defines an environment around the necessary functions created as `labels`."
-  (let ((n (length probs-i))
-	;; Padded array of probabilities
-	(probs (make-array (+ (length probs-i) 2) :element-type 'fixnum))
-	;; Each line is a set of chains.
-	(arr-chains (make-array L :element-type '(vector chain)
-				  :initial-element #((make-chain))))
-	;; Whether a new pair is needed in line j.
-	(pair-needed (make-array
-		      L :element-type 'boolean :initial-element nil))
-	;; Weight of last package in each line.
-	(last-pack-weight 
-	  (make-array L :element-type 'fixnum
-			:initial-element (+ (aref probs-i 0)
-					    (aref probs-i 1))))
-	;; Array storing the last count for each row j. 
-	(last-count (make-array L :element-type 'fixnum
-				  :initial-element 2))
-	;; Array of last tail element for each line. Only for building,
-	;; cannot be traversed.
-	(last-tail (make-array L :element-type '(or null chain)
-				 :initial-element nil)))
+  (let* ((n (length probs-i))
+	 ;; Padded array of probabilities
+	 (probs (make-array (+ (length probs-i) 2) :element-type 'fixnum))
+	 ;; Each line is a set of chains.
+	 (arr-chains (make-array L :element-type '(vector chain)
+				   :initial-element #((make-chain))))
+	 ;; Last set in arr-chains.
+	 (last-vec (aref arr-chains (1- L)))
+	 ;; Whether a new pair is needed in line j.
+	 (pair-needed (make-array
+		       L :element-type 'boolean :initial-element nil))
+	 ;; Weight of last package in each line.
+	 (last-pack-weight 
+	   (make-array L :element-type 'fixnum
+			 :initial-element (+ (aref probs-i 0)
+					     (aref probs-i 1))))
+	 ;; Array storing the last count for each row j. 
+	 (last-count (make-array L :element-type 'fixnum
+				   :initial-element 2))
+	 ;; Array of last tail element for each line. Only for building,
+	 ;; cannot be traversed.
+	 (last-tail (make-array L :element-type '(or null chain)
+				  :initial-element nil)))
     (labels
 	((add-chain (j)
 	   ;; If the previous pair was previously used in a package, ask for a
@@ -81,13 +83,11 @@
 		    cur-vec))
 	       (incf (aref last-pack-weight j) nweight))))
 	 (chains-gc ()
-	   (let* ((len-arr-chains (1- (length arr-chains)))
-		  (last-vec (aref arr-chains len-arr-chains))
-		  (bound-chain (aref last-vec (1- (length last-vec))))
+	   (let* ((bound-chain (aref last-vec (1- (length last-vec))))
 		  (curvec nil)
 		  (curchain nil)
 		  (inewchain 0))
-	     (loop for ivec from (1- (length arr-chains)) downto 0 do
+	     (loop for ivec from (1- L) downto 0 do
 	       (when (not bound-chain) (return-from chains-gc))
 	       (setf curvec (aref arr-chains ivec))
 	       (setf inewchain 0)
@@ -104,7 +104,6 @@
 		 ;; Current last tail of last vector. Triggers garbage
 		 ;; collection if changed.
 		 (cur-last-tail nil)
-		 (lastvec nil)
 		 (lastchain nil))
 	     ;; Test whether constructing the length-limited code is even
 	     ;; possible.
@@ -129,23 +128,20 @@
 		      :initial-contents
 		      (list (make-chain :count 1)
 			    (make-chain :count 2)))))
+	     ;; Bind the last-vec
+	     (setf last-vec (aref arr-chains (1- L)))
 	     ;; Ask for 2n-2-2 nodes in the last list.
 	     (dotimes (it (- (* 2 n) 4) t)
 	       (when (= 0 (mod it 2)) (setf (aref pair-needed (1- L)) T))
 	       (add-chain (1- L))
 	       ;; Call manual garbage collection every time the tail of the last
 	       ;; vector changes (a package was created).
-	       (when
-		   (not
-		    (eq cur-last-tail
-			(setf cur-last-tail
-			      (chain-tail
-			       (aref (aref arr-chains (1- L))
-				     (1- (length (aref arr-chains (1- L)))))))))
+	       (setf lastchain (aref last-vec (1- (length last-vec))))
+	       (when (not (eq cur-last-tail
+			      (setf cur-last-tail (chain-tail lastchain))))
 		 (chains-gc)))
 	     ;; Go up the last boundary chain and get the 'a' vector of counts.
-	     (setf lastvec (aref arr-chains (1- L)))
-	     (setf lastchain (aref lastvec (1- (length lastvec))))
+	     (setf lastchain (aref last-vec (1- (length last-vec))))
 	     (loop while lastchain do
 	       (vector-push-extend (chain-count lastchain) a)
 	       (setf lastchain (chain-tail lastchain)))

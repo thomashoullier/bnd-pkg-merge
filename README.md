@@ -40,26 +40,44 @@ The example from [1], with more colors and details, is:
 Please read [1] for the full explanation. It is not an easy read but I don't
 think I can do a better job at explaining the algorithm.
 
-## Changes to the algorithm
+## Improvements to the algorithm
 The boundary package-merge algorithm, can be improved in minor ways to increase
 performance. I took the benchmark case of encoding 100k symbols of random
 weights to quantify the improvements.
 Some of these changes are straightforward, it is possible that they were even
 implied in [1], however they are not explicit in the raw implementation 
 presented in the paper.
+None of these changes modifies the algorithmic complexity of the algorithm.
 
-* Computation of chain pairs in the sets preceding _j_ only if needed. The
+1. Computation of chain pairs in the sets preceding _j_ only if needed. The
 algorithm in [1] implemented in a literal way involves asking for nodes that 
 will possibly never be considered for insertion as packages. The performance 
 impact is almost a division by 2 in execution time for our test case. It seems 
 that implementing this change necessarily comes at the cost of adding an 
 auxiliary array of booleans of length _L - 1_ to keep track of whether new pairs
 are needed. This cost is negligeable.
-* Keeping *weights* around is actually unnecessary. We only need one number per
+1. Keeping *weights* around is actually unnecessary. We only need one number per
 set _j_. We need only the last weight of each set, replaced by the sum *s* of
 the weights of the two last elements that are about to become a package.
-* Only one in two chains is needed actually: the second of each package. This
+1. Only one in two chains is needed actually: the second of each package. This
 requires tracking the last count and last tail of each set *j*.
+
+### Memory/Time impact
+We plot the memory usage of the lisp image across the different improvements we
+made. Except for the last series, this represent the total cumulated memory
+usage. The default behaviour of SBCL garbage collection being to be called only
+when the memory is actually full.
+
+![memory-time plots](doc/ram-usage.png)
+
+* _asking pairs_: Performance after the improvement #1 above.
+* _half chains_: Idem after #2 and #3.
+* _garbage collected_: Manual garbage collection `chains-gc` implemented and
+called at every package linked to the last set of chains.
+* _closures_: Creating an adequate lexical environment for the recursion to run
+in. Execution time almost cut in half.
+* _agressive gc_: We call `(sb-ext:gc :full t)` agressively throughout the
+execution to check that the memory is actually free in the lisp image. 
 
 ## References
 1. Katajainen J., Moffat A., Turpin A. (1995) A fast and space-economical algorithm for length-limited coding. In: Staples J., Eades P., Katoh N., Moffat A. (eds) Algorithms and Computations. ISAAC 1995. Lecture Notes in Computer Science, vol 1004. Springer, Berlin, Heidelberg. https://doi.org/10.1007/BFb0015404

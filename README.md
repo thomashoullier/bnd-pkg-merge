@@ -45,12 +45,12 @@ implied in [1], however they are not explicit in the raw implementation
 presented in the paper.
 
 * Computation of chain pairs in the sets preceding _j_ only if needed. The
-algorithm in [1] implemented literally involves asking for nodes that will
-possibly never be considered for insertion as packages. The performance impact
-is almost a division by 2 in execution time for our test case. It seems that
-implementing this change necessarily comes at the cost of adding an auxiliary
-array of booleans of length _L - 1_ to keep track of whether new pairs are
-needed. This cost is negligeable.
+algorithm in [1] implemented in a literal way involves asking for nodes that 
+will possibly never be considered for insertion as packages. The performance 
+impact is almost a division by 2 in execution time for our test case. It seems 
+that implementing this change necessarily comes at the cost of adding an 
+auxiliary array of booleans of length _L - 1_ to keep track of whether new pairs
+are needed. This cost is negligeable.
 * Keeping *weights* around is actually unnecessary. We only need one number per
 set _j_. We need only the last weight of each set, replaced by the sum *s* of
 the weights of the two last elements that are about to become a package.

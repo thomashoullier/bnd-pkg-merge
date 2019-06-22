@@ -37,6 +37,9 @@ The example from [1], with more colors and details, is:
 
 ![Boundary package-merge diagram](doc/bnd-pkg-merge.svg)
 
+Please read [1] for the full explanation. It is not an easy read but I don't
+think I can do a better job at explaining the algorithm.
+
 ## Changes to the algorithm
 The boundary package-merge algorithm, can be improved in minor ways to increase
 performance. I took the benchmark case of encoding 100k symbols of random

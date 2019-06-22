@@ -12,6 +12,23 @@ time and _O(L)_ space for example. Please only treat this implementation as an
 alternative means to test your own implementations of actually up to date 
 algorithms.
 
+## Usage
+Let's say you want to encode the _n=6_ symbol frequencies `(1 1 5 7 10 14)` 
+(need to be sorted in increasing order) with maximum length of _L=4_.
+
+```common-lisp
+(defparameter *probs* #(1 1 5 7 10 14))
+(defparameter *L* 4)
+(defparameter *a* (bpm:encode-limited *probs* *L*))
+;;=> #(2 3 6 6)
+(defparameter *lengths* (bpm:a-to-l *a*))
+;;=> #(4 4 3 2 2 2)
+```
+
+`*a*` is a compressed representation of `*l*` (see [1]). `*l*` is the vector of
+lengths for the encoded symbols. The first has 4 bits, the second 4, the third 3
+etc. A Huffman code can be built trivially from `*l*`.
+
 ## Recommended reading
 The full proof of why the boundary package-merge works can be understood by
 reading just [2] and [1], preferably in this order. This is for readers

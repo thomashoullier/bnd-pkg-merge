@@ -42,12 +42,9 @@ Please read [1] for the full explanation. It is not an easy read but I don't
 think I can do a better job at explaining the algorithm.
 
 ## Improvements to the algorithm
-The boundary package-merge algorithm, can be improved in minor ways to increase
+The boundary package-merge algorithm can be improved in minor ways to increase
 performance. I took the benchmark case of encoding 100k symbols of random
 weights to quantify the improvements.
-Some of these changes are straightforward, it is possible that they were even
-implied in [1], however they are not explicit in the raw implementation 
-presented in the paper.
 None of these changes modifies the algorithmic complexity of the algorithm.
 
 1. Computation of chain pairs in the sets preceding _j_ only if needed. The

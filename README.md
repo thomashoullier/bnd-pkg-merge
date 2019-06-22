@@ -68,7 +68,7 @@ made. Except for the last series, this represent the total cumulated memory
 usage. The default behaviour of SBCL garbage collection being to be called only
 when the memory is actually full.
 
-![memory-time plots](doc/ram-usage.png)
+![memory-time plots](test-data/ram-usage.png)
 
 * _asking pairs_: Performance after the improvement #1 above.
 * _half chains_: Idem after #2 and #3.

@@ -11,6 +11,7 @@ Note that this algorithm has since been surpassed by others. [3] reports _O(n)_
 time and _O(L)_ space for example. Please only treat this implementation as an 
 alternative means to test your own implementations of actually up to date 
 algorithms.
+
 ## Recommended reading
 The full proof of why the boundary package-merge works can be understood by
 reading just [2] and [1], preferably in this order. This is for readers
@@ -78,6 +79,10 @@ called at every package linked to the last set of chains.
 in. Execution time almost cut in half.
 * _agressive gc_: We call `(sb-ext:gc :full t)` agressively throughout the
 execution to check that the memory is actually free in the lisp image. 
+
+## Dependencies
+None. We use https://github.com/thomashoullier/mem-monitor for plotting the
+memory usage.
 
 ## References
 1. Katajainen J., Moffat A., Turpin A. (1995) A fast and space-economical algorithm for length-limited coding. In: Staples J., Eades P., Katoh N., Moffat A. (eds) Algorithms and Computations. ISAAC 1995. Lecture Notes in Computer Science, vol 1004. Springer, Berlin, Heidelberg. https://doi.org/10.1007/BFb0015404

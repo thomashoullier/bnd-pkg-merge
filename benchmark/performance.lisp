@@ -17,10 +17,11 @@
     (setf (aref probs i) (1+ (random 100 (sb-kernel::seed-random-state i)))))
   (setf probs (sort probs #'<=))
   (sb-ext:gc :full t)
-  (sb-ext:run-program "mem-monitor"
-		    (list "$(pidof sbcl)" "500" "1"
-			  "/home/modi/repos/huffman/bnd-pkg-merge/test.txt")
-		    :wait nil :search T)
+  (sb-ext:run-program
+   "mem-monitor"
+   (list "$(pidof sbcl)" "500" "1"
+	 "/home/modi/repos/huffman/bnd-pkg-merge/benchmark/test.txt")
+   :wait nil :search T)
   (setf a (encode-limited probs 32)))
 
 (format t "DONE~%")

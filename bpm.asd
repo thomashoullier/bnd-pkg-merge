@@ -4,5 +4,5 @@
   :author "karl"
   :license "UNLICENSE"
   :description "Boundary package-merge implementation"
-  :components ((:file "package")
-	       (:file "bnd-pkg-merge" :depends-on ("package"))))
+  :components ((:file "src/package")
+               (:file "src/bnd-pkg-merge" :depends-on ("src/package"))))

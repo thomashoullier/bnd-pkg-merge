@@ -54,7 +54,17 @@ repeatability and testing the output."
   (ok (encode-limited-valid #(1 1 5 7 10 14) 4 #(2 3 6 6)))
   (ok (encode-limited-valid #(1 1 5 7 10 14) 3 #(4 6 6)))
   (ok (encode-limited-valid #(1 1) 1 #(2)))
-  (ok (encode-limited-valid #(1 1 3 3) 4 #(2 3 4))))
+  (ok (encode-limited-valid #(1 1 3 3) 4 #(2 3 4)))
+  (testing "Errors"
+    (ok (signals (encode-limited #(1 1 3 3) 1))
+        "L too short error.")
+    (ok (signals (encode-limited #(1 3 1 3) 5))
+        "probs-i not sorted in increasing order.")
+    (ok (signals (encode-limited #(0 1 3 3) 5))
+        "probs-i contains a 0.")))
+
+;; Bugs
+;; (format t "~A" (encode-limited #(1 2 3) 5))
 
 (deftest large-set
   (ok (large-set-valid)))

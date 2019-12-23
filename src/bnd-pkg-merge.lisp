@@ -158,7 +158,13 @@ L: The code length limit. The resulting code lengths will be at most L.
       (when (< prob last-prob)
         (error "Probabilities in 'probs-i' must be integer, >0, and sorted in
 increasing order."))
-      (setf last-prob prob)))
+      (setf last-prob prob))
+    ;; Manual cases for low n. The boundary package-merge implementation does
+    ;; not handle these in all cases!
+    (case n
+      (1 (return-from encode-limited #(1)))
+      (2 (return-from encode-limited #(2)))
+      (3 (return-from encode-limited #(2 3)))))
   ;; Calling the boundary package-merge algorithm.
   (funcall (mkclosures probs-i L)))
 

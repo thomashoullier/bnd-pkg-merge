@@ -64,7 +64,8 @@ repeatability and testing the output."
         "probs-i contains a 0.")))
 
 ;; Bugs
-;; (format t "~A" (encode-limited #(1 2 3) 5))
+(deftest bug-1
+  (ok (encode-limited-valid #(1 2 3) 2 #(2 3))))
 
 (deftest large-set
   (ok (large-set-valid)))
